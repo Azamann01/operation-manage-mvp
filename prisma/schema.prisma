@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum JobStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum JobPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ActivityType {
+  STATUS_CHANGE
+  NOTE
+  CHECK_IN
+  CHECK_OUT
+}
+
+enum NotificationType {
+  JOB_ASSIGNED
+  JOB_COMPLETED
+  JOB_OVERDUE
+  NOTE_ADDED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         Role       @default(EMPLOYEE)
+  jobTitle     String?
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+
+  createdJobs   Job[]          @relation("JobCreatedBy")
+  assignments   JobAssignment[]
+  activities    JobActivity[]
+  notifications Notification[]
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  industry    String?
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  jobs        Job[]
+  sites       Site[]
+}
+
+model Site {
+  id         String   @id @default(cuid())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  name       String
+  address    String?
+  createdAt  DateTime @default(now())
+
+  jobs       Job[]
+}
+
+model Job {
+  id            String      @id @default(cuid())
+  number        Int         @unique @default(autoincrement())
+  title         String
+  description   String?
+  customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId    String
+  site          Site?       @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  siteId        String?
+  status        JobStatus   @default(PENDING)
+  priority      JobPriority @default(MEDIUM)
+  scheduledDate DateTime?
+  dueDate       DateTime?
+  price         Decimal?    @db.Decimal(10, 2)
+  vatExempt     Boolean     @default(false)
+  rating        Int?
+  completedAt   DateTime?
+  createdBy     User        @relation("JobCreatedBy", fields: [createdById], references: [id])
+  createdById   String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  assignments   JobAssignment[]
+  activities    JobActivity[]
+  notifications Notification[]
+
+  @@index([status])
+  @@index([customerId])
+}
+
+model JobAssignment {
+  id         String   @id @default(cuid())
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId      String
+  employee   User     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
+  assignedAt DateTime @default(now())
+
+  @@unique([jobId, employeeId])
+}
+
+model JobActivity {
+  id          String       @id @default(cuid())
+  job         Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId       String
+  author      User         @relation(fields: [authorId], references: [id])
+  authorId    String
+  type        ActivityType
+  description String
+  createdAt   DateTime     @default(now())
+
+  @@index([jobId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  type        NotificationType
+  title       String
+  description String
+  job         Job?             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId       String?
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, read])
+  @@index([jobId])
+}
