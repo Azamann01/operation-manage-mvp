@@ -52,7 +52,19 @@ export default async function CustomerDetailPage({
             </div>
             <p className="text-sm text-muted-foreground">{customer.address}</p>
           </div>
-          <CustomerFormDialog customer={customer} />
+          <CustomerFormDialog
+            customer={{
+              id: customer.id,
+              name: customer.name,
+              industry: customer.industry,
+              contactName: customer.contactName,
+              email: customer.email,
+              phone: customer.phone,
+              address: customer.address,
+              notes: customer.notes,
+              createdAt: customer.createdAt,
+            }}
+          />
         </div>
       </div>
 
