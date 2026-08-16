@@ -33,7 +33,13 @@ export default async function AdminJobDetailPage({
         activities: { orderBy: { createdAt: "desc" }, include: { author: true } },
       },
     }),
-    db.user.findMany({ where: { role: "EMPLOYEE", active: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({
+      where: {
+        role: "EMPLOYEE",
+        OR: [{ active: true }, { assignments: { some: { jobId: id } } }],
+      },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!job) notFound();

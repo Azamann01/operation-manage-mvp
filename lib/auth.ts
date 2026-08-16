@@ -39,7 +39,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.role = (user as { role: string }).role;
         token.id = user.id as string;
+        return token;
       }
+
+      // The JWT can outlive its User row (e.g. dev reseed while signed in).
+      // Verify it still points at a real, active user on every read, or the
+      // session goes stale and any write using session.user.id as a foreign
+      // key (like notifications) crashes with an FK violation instead of a
+      // clean redirect to sign-in.
+      if (token.id) {
+        const stillValid = await db.user.findUnique({
+          where: { id: token.id as string },
+          select: { id: true, active: true },
+        });
+        if (!stillValid || !stillValid.active) {
+          return null;
+        }
+      }
+
       return token;
     },
     session: async ({ session, token }) => {

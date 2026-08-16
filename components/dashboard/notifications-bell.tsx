@@ -31,6 +31,16 @@ export function NotificationsBell({
 }) {
   const [notifications, setNotifications] = useState(initialNotifications);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
+  // The layout re-fetches notifications on every server-action revalidation, but
+  // useState's initializer only runs on mount — resync during render when fresh
+  // props arrive (React's documented pattern for adjusting state from props,
+  // safe here since it's guarded and doesn't loop: https://react.dev/learn/you-might-not-need-an-effect).
+  const [prevInitialNotifications, setPrevInitialNotifications] = useState(initialNotifications);
+  if (initialNotifications !== prevInitialNotifications) {
+    setPrevInitialNotifications(initialNotifications);
+    setNotifications(initialNotifications);
+    setUnreadCount(initialUnreadCount);
+  }
   const [, startTransition] = useTransition();
   const jobHref = variant === "admin" ? "/admin/jobs" : "/employee/jobs";
 
