@@ -4,6 +4,18 @@ import bcrypt from "bcryptjs";
 const db = new PrismaClient();
 
 async function main() {
+  // This script wipes every table before reseeding. Only ever run it against
+  // a demo/staging database — require the same DEMO_MODE flag that gates the
+  // demo login accounts, so a stray `npm run db:seed` against production
+  // can't silently delete real customer data.
+  if (process.env.DEMO_MODE !== "true") {
+    console.error(
+      "Refusing to seed: this script deletes ALL existing data before reseeding.\n" +
+        "Set DEMO_MODE=true in the environment only when targeting a demo/staging database."
+    );
+    process.exit(1);
+  }
+
   await db.notification.deleteMany();
   await db.jobActivity.deleteMany();
   await db.jobAssignment.deleteMany();

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import {
   Table,
@@ -11,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { UserCog } from "lucide-react";
 import { EmployeeFormDialog } from "@/components/employees/employee-form-dialog";
 import { ToggleActiveButton } from "@/components/employees/toggle-active-button";
+import { initials, avatarTints } from "@/lib/utils";
+
+export const metadata: Metadata = { title: "Employees" };
 
 export default async function EmployeesPage() {
   const employees = await db.user.findMany({
@@ -54,9 +58,18 @@ export default async function EmployeesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {employees.map((e) => (
+              {employees.map((e, i) => (
                 <TableRow key={e.id}>
-                  <TableCell className="font-medium">{e.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarTints[i % avatarTints.length]}`}
+                      >
+                        {initials(e.name)}
+                      </div>
+                      {e.name}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{e.email}</TableCell>
                   <TableCell className="text-muted-foreground">{e.jobTitle || "—"}</TableCell>
                   <TableCell>

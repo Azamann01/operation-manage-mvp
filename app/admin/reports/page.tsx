@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/dashboard/kpi-card";
@@ -6,6 +7,8 @@ import { EmployeeProductivityChart } from "@/components/dashboard/employee-produ
 import { Briefcase, Clock, CheckCircle2, TrendingUp, Banknote, Star } from "lucide-react";
 import { calculateTotal } from "@/lib/currency";
 import type { JobStatus } from "@prisma/client";
+
+export const metadata: Metadata = { title: "Reports" };
 
 export default async function ReportsPage() {
   const [jobs, employees, completedJobs] = await Promise.all([

@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { DEMO_MODE, DEMO_ACCOUNT_EMAILS } from "@/lib/demo";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -18,6 +19,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
+
+        // Defense in depth: block the known seed-data accounts outright when
+        // demo mode is off, independent of the login UI. Stops anyone who
+        // already knows the (documented, shared) demo password from signing
+        // in directly once this goes live with real customer data.
+        if (!DEMO_MODE && (DEMO_ACCOUNT_EMAILS as readonly string[]).includes(email)) {
+          return null;
+        }
 
         const user = await db.user.findUnique({ where: { email } });
         if (!user || !user.active) return null;

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
@@ -9,6 +10,16 @@ import { SiteFormDialog } from "@/components/sites/site-form-dialog";
 import { DeleteSiteButton } from "@/components/sites/delete-site-button";
 import { statusVariant, priorityVariant } from "@/lib/job-badges";
 import { formatJobNumber } from "@/lib/jobs";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const customer = await db.customer.findUnique({ where: { id }, select: { name: true } });
+  return { title: customer?.name ?? "Customer" };
+}
 
 export default async function CustomerDetailPage({
   params,

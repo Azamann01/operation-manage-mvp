@@ -14,8 +14,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OperFlow — Operations Management",
-  description: "Manage customers, jobs, and daily operations in one place.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  title: {
+    default: "OperFlow — Operations Management",
+    template: "%s · OperFlow",
+  },
+  description:
+    "Run your field operations from one place — jobs, customers, team assignments, and reporting for service businesses.",
+  openGraph: {
+    title: "OperFlow — Operations Management",
+    description: "Run your field operations from one place.",
+    siteName: "OperFlow",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

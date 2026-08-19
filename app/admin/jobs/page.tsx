@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,8 @@ import { statusVariant, priorityVariant, statusLabel } from "@/lib/job-badges";
 import { formatGBP, calculateTotal } from "@/lib/currency";
 import { formatJobNumber, isOverdue } from "@/lib/jobs";
 import { format } from "date-fns";
+
+export const metadata: Metadata = { title: "Jobs" };
 
 export default async function JobsPage({
   searchParams,

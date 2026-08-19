@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { format, isToday } from "date-fns";
@@ -9,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { StatusControl } from "@/components/jobs/status-control";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { statusVariant, priorityVariant, statusLabel } from "@/lib/job-badges";
+
+export const metadata: Metadata = { title: "My Jobs" };
 
 export default async function EmployeeDashboardPage() {
   const session = await auth();

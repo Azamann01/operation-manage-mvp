@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { formatDistanceToNow, format } from "date-fns";
 import {
@@ -28,6 +29,8 @@ const activityIcon: Record<ActivityType, React.ComponentType<{ className?: strin
   CHECK_IN: LogIn,
   CHECK_OUT: LogOut,
 };
+
+export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function AdminDashboardPage() {
   const now = new Date();

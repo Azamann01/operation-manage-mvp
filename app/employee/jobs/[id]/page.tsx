@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { format } from "date-fns";
@@ -13,6 +14,16 @@ import { PricingCard } from "@/components/jobs/pricing-card";
 import { JobRating } from "@/components/jobs/job-rating";
 import { priorityVariant } from "@/lib/job-badges";
 import { formatJobNumber, isOverdue } from "@/lib/jobs";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const job = await db.job.findUnique({ where: { id }, select: { title: true } });
+  return { title: job?.title ?? "Job" };
+}
 
 export default async function EmployeeJobDetailPage({
   params,

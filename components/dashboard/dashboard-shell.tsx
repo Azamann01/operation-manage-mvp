@@ -200,7 +200,7 @@ export function DashboardShell({
         </div>
       </header>
 
-      <div className="relative overflow-hidden">
+      <div className="relative isolate overflow-hidden">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,#e0e7ff,transparent)]"
