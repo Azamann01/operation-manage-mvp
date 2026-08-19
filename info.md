@@ -2,7 +2,7 @@
 
 Internal reference doc: what this app is, why it's built the way it is, and the decisions made along the way. Kept up to date as the project evolves so future work (by Claude or anyone else) doesn't have to rediscover context.
 
-Last updated: 2026-08-19 (login page visual pass)
+Last updated: 2026-08-19 (first production deployment, live on Vercel + Neon)
 
 ---
 
@@ -155,14 +155,34 @@ npm run dev
 ```
 DATABASE_URL="postgresql://<user>@localhost:5432/oper_manag?schema=public"
 AUTH_SECRET="<generate with: openssl rand -base64 32>"
+DEMO_MODE="true"
 ```
-(No `NEXTAUTH_URL` needed — `trustHost: true` in `lib/auth.ts` handles dynamic dev ports.)
+(No `NEXTAUTH_URL` needed — `trustHost: true` in `lib/auth.ts` handles dynamic dev ports. `DEMO_MODE=true` locally enables the one-click demo login buttons and is required for `npm run db:seed` to run at all — see `lib/demo.ts` and the decisions-log entry above on `DEMO_MODE`.)
 
 **To reset seed data**: `prisma/seed.ts` clears all rows (in FK-safe order) before re-inserting, so `npx prisma db seed` is safe to re-run any time. Note NextAuth JWT sessions won't reflect renamed users until re-login (see decisions log above).
 
 ---
 
-## 8. Conversation / build history
+## 8. Production deployment
+
+**Live at**: `https://oper-manag.vercel.app` (Vercel project `tech-with-top/oper-manag`, deployed 2026-08-19).
+
+- **Hosting**: Vercel, connected to this GitHub repo (`Azamann01/operation-manage-mvp`) — pushes to `main` auto-deploy. First deploy was pushed manually via `vercel --prod` (deploys from local working tree, not git) before the Git integration had anything to build from; every deploy since is git-triggered.
+- **Database**: Neon Postgres (free tier, `lhr1`/London region — the app is UK-market, see §6), provisioned via `vercel integration add neon`. Neon's built-in user-auth sync (`auth` metadata option) was explicitly disabled at provision time — this app's own NextAuth Credentials provider is the only auth path, we don't need Neon's.
+- **Two connection strings matter**: Neon exposes both a pooled (`DATABASE_URL`) and direct/unpooled (`DATABASE_URL_UNPOOLED`) connection. `prisma/schema.prisma`'s datasource sets `directUrl = env("DATABASE_URL_UNPOOLED")` — Prisma's migration engine needs a direct connection for its advisory locks, which don't work reliably through PgBouncer-style poolers. Runtime queries still use the pooled `url`. If a future migration mysteriously hangs or fails only in production, check this is still wired correctly before anything else.
+- **Migrations run automatically on every deploy**: `package.json`'s `build` script is `prisma generate && prisma migrate deploy && next build`, confirmed via `vercel project inspect` that Vercel actually runs `npm run build` (not a bare `next build`) for this project. `migrate deploy` only applies pending migrations — safe to run unconditionally on every build, unlike `migrate dev`.
+- **Env vars are configured per-environment in the Vercel dashboard** (Production / Preview / Development), not committed anywhere:
+  - `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, and the other `PG*`/`POSTGRES_*` vars — set automatically by the Neon integration, identical across all three environments (single database, no per-environment branching was configured).
+  - `AUTH_SECRET` — **a distinct freshly-generated secret per environment** (production/preview/development each got their own via `openssl rand -base64 32`), never the local dev `.env` value.
+  - `DEMO_MODE="true"` — set across all three environments for the initial launch, since the production database has no real customer data yet and the whole point of the one-click login buttons (see the `lib/demo.ts` / `lib/auth.ts` decisions-log entries above) is letting prospects try the product without friction. **Revisit this the moment real customer data exists** — set to `"false"` (or remove) in Production at minimum; the auth-layer block in `lib/auth.ts` is the actual security boundary either way, this just controls whether the buttons/credentials are shown at all.
+  - `NEXT_PUBLIC_APP_URL="https://oper-manag.vercel.app"` — set in Production only so `metadataBase` resolves correctly for the OG image/social previews. If a custom domain is ever added, update this and redeploy (it's inlined into the client bundle at build time, so just changing the dashboard value doesn't retroactively fix an already-built deployment).
+- **Production database was seeded once**, manually, right after the first deploy: pulled production env vars via `vercel env pull --environment production` into a scratch file (not `.env.local` — see below), sourced them into a one-off shell, and ran `npx tsx prisma/seed.ts` against Neon directly, then deleted the scratch file. This populated the same demo accounts/customers/jobs described in §5. Seeding is not part of the automated build (unlike migrations) — it's a one-time bootstrap, not something safe to re-run against a database that might contain real data, which is exactly why `prisma/seed.ts` has the `DEMO_MODE` guard.
+- **`vercel link` / `vercel env pull` write a local `.env.local`** — this **overrides** `.env` in Next.js's env-loading order, so after linking the project, a plain `.env.local` left in place would silently point local `npm run dev` at the production Neon database instead of the local Homebrew Postgres. Deleted it after use; if you ever run `vercel env pull` again for a one-off task, delete the resulting file afterward rather than leaving it sitting in the repo root.
+- **`vercel env pull` masks any var typed "Sensitive" as the literal string `[SENSITIVE]`** in the output file — `DEMO_MODE` and `AUTH_SECRET` on Production/Preview got auto-typed Sensitive when added via `vercel env add` (piped through stdin), so they came back masked when pulled for the seed run above. Had to override `DEMO_MODE=true` explicitly in the shell rather than trust the pulled file. Worth remembering if pulling prod env vars for any future one-off script.
+
+---
+
+## 9. Conversation / build history
 
 Chronological summary of how this app came to be, in case future changes need the "why":
 
@@ -198,10 +218,16 @@ Chronological summary of how this app came to be, in case future changes need th
 
     See §2's decisions log for the general lessons (pickers scoped to "active" rows need to also include the already-selected value even if inactive; never seed local state from a prop that's expected to change post-mount).
 12. **Fixed the recurring stale-session crash properly**: the user hit the exact `Notification_userId_fkey` crash (documented as a known dev-only annoyance since §2) live in their own browser and asked Claude to check the error. Rather than only re-explaining "sign out and back in," Claude fixed it at the root: `lib/auth.ts`'s `jwt` callback now verifies the token's user still exists (and is active) on every read, invalidating the session cleanly (redirect to `/login`) instead of letting a stale session reach a query that crashes. Verified by reproducing the exact scenario (log in, delete that user's row, reload) before and after the fix.
+13. **UI/UX refinement pass** ("refine this, modernise the UI/UX, check for errors and fix"): found and fixed a sitewide bug — `globals.css`'s `@theme inline` block had `--font-sans: var(--font-sans)`, a self-referential CSS variable that never resolved, so the entire app had silently been rendering in the browser's serif fallback instead of Geist Sans this whole time. Also added avatar-initial consistency to the Employees table (matching the existing Customers card pattern).
+14. **MVP go-to-market pass** ("this is an MVP that needs to attract paying clients"): replaced the plaintext "Admin: admin@operflow.app / password123" credentials box with proper branding (generated favicon/apple-icon/OG image matching the in-app "OF" mark, deleted unused `create-next-app` boilerplate SVGs, per-page browser titles via a title template).
+15. **"Set the login to clickable automatic"**: turned the plaintext demo credentials into one-click "Continue as Admin/Employee" buttons that fill and submit the real login form via `formRef.requestSubmit()` — no shortcut path, goes through the same server action as a manual login.
+16. **"Make it secure"**: the one-click buttons above meant anyone landing on `/login` could one-click into the full admin account with zero gate — flagged this unprompted, user asked to wire up a fix. Added `DEMO_MODE` (`lib/demo.ts`), gating demo credentials out of the client bundle entirely when off (not just hidden) and independently blocking those specific accounts at the `authorize()` layer in `lib/auth.ts` as defense in depth — verified live that the correct demo password gets rejected with a generic error when the flag is off. Also added login rate limiting (`lib/rate-limit.ts`) and a `DEMO_MODE` guard on `prisma/seed.ts`'s destructive `deleteMany()` calls, since a habitual reseed against production would otherwise wipe real data with no confirmation.
+17. **"Make the login background more visible and interactive"**: added a grid pattern, three drifting gradient blobs, and a cursor-tracking spotlight. First attempt was completely invisible (not just subtle) — root-caused to a real CSS gotcha: `-z-10` on a decorative div only stacks behind its siblings if the parent actually establishes a stacking context, and `position: relative` alone (no explicit `z-index`) doesn't create one. Fixed with `isolate` on the wrapper. The same latent bug turned out to already exist on the dashboard's header glow (`components/dashboard/dashboard-shell.tsx`) — fixed there too once spotted. Also caught and fixed a bug in the login redesign itself (demo buttons and email/password toggled between two mutually-exclusive UI states): the first pass conditionally unmounted the `<form>` element depending on which view showed, so the demo buttons' `formRef.requestSubmit()` silently no-opped whenever the email form wasn't visible. Fixed by keeping the form permanently mounted and toggling only its CSS visibility.
+18. **"Let us deploy live"**: first production deployment. See §8 for the full infrastructure record. Notable in-the-moment catches: `.env.example` (added in pass 16) turned out to be silently caught by the `.env*` `.gitignore` pattern and was never actually trackable — fixed with a `!.env.example` negation before it mattered. `vercel env pull` writes `.env.local`, which overrides `.env` in Next.js's load order — deleted it immediately after each use so local `npm run dev` couldn't accidentally start pointing at the production Neon database. First seed attempt against production silently ran against the *local* database instead (a shell substitution for loading the pulled env file failed open rather than closed) — caught by explicitly logging the resolved DB host before seeding, which is now the standard sanity check before any prod-targeted script.
 
 ---
 
-## 9. Known gaps / follow-ups (not yet built)
+## 10. Known gaps / follow-ups (not yet built)
 
 - **Customer-facing portal** — deferred by design, not started. Data model already supports it (a `Customer` doesn't currently have login credentials — would need either a `User` role addition or a separate customer-auth mechanism).
 - **No dark-mode toggle** — `next-themes` is installed but unused; the app is single-theme (light body, permanently-dark navbar).
