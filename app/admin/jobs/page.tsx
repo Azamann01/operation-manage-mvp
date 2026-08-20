@@ -7,6 +7,7 @@ import { JobFormDialog } from "@/components/jobs/job-form-dialog";
 import { statusVariant, priorityVariant, statusLabel } from "@/lib/job-badges";
 import { formatGBP, calculateTotal } from "@/lib/currency";
 import { formatJobNumber, isOverdue } from "@/lib/jobs";
+import { getCustomersList, getSitesList } from "@/lib/queries";
 import { format } from "date-fns";
 
 export const metadata: Metadata = { title: "Jobs" };
@@ -24,8 +25,8 @@ export default async function JobsPage({
       orderBy: { createdAt: "desc" },
       include: { customer: true, assignments: { include: { employee: true } } },
     }),
-    db.customer.findMany({ orderBy: { name: "asc" } }),
-    db.site.findMany({ orderBy: { name: "asc" } }),
+    getCustomersList(),
+    getSitesList(),
   ]);
 
   const statuses = ["PENDING", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];

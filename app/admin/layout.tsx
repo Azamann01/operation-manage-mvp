@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { QuickCreateJob } from "@/components/jobs/quick-create-job";
 import { getNotifications } from "@/lib/actions/notifications";
+import { getCustomersList, getSitesList } from "@/lib/queries";
 
 export default async function AdminLayout({
   children,
@@ -15,8 +15,8 @@ export default async function AdminLayout({
 
   const [notifications, customers, sites] = await Promise.all([
     getNotifications(),
-    db.customer.findMany({ orderBy: { name: "asc" } }),
-    db.site.findMany({ orderBy: { name: "asc" } }),
+    getCustomersList(),
+    getSitesList(),
   ]);
 
   return (
