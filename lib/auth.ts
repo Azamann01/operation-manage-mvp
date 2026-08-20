@@ -1,10 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { DEMO_MODE, DEMO_ACCOUNT_EMAILS } from "@/lib/demo";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const { handlers, auth: uncachedAuth, signIn, signOut } = NextAuth({
   trustHost: true,
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
@@ -77,3 +78,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+// auth() re-verifies the session's user against the DB on every call (see
+// the jwt callback above), so without this, each request calling it from
+// multiple places (a layout, a page, getNotifications) pays for that lookup
+// once per call instead of once per request.
+export const auth = cache(uncachedAuth);
+export { handlers, signIn, signOut };
