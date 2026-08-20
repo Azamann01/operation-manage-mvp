@@ -88,6 +88,7 @@ export function NotificationsBell({
                 <Link
                   key={n.id}
                   href={n.jobId ? `${jobHref}/${n.jobId}` : jobHref}
+                  prefetch={false}
                   onClick={() => {
                     if (!n.read) {
                       setNotifications((prev) =>
