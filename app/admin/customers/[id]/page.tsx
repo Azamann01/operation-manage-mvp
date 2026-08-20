@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { db } from "@/lib/db";
@@ -11,13 +12,26 @@ import { DeleteSiteButton } from "@/components/sites/delete-site-button";
 import { statusVariant, priorityVariant } from "@/lib/job-badges";
 import { formatJobNumber } from "@/lib/jobs";
 
+const getCustomer = cache((id: string) =>
+  db.customer.findUnique({
+    where: { id },
+    include: {
+      jobs: {
+        orderBy: { createdAt: "desc" },
+        include: { assignments: { include: { employee: true } } },
+      },
+      sites: { orderBy: { name: "asc" } },
+    },
+  })
+);
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const customer = await db.customer.findUnique({ where: { id }, select: { name: true } });
+  const customer = await getCustomer(id);
   return { title: customer?.name ?? "Customer" };
 }
 
@@ -27,16 +41,7 @@ export default async function CustomerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const customer = await db.customer.findUnique({
-    where: { id },
-    include: {
-      jobs: {
-        orderBy: { createdAt: "desc" },
-        include: { assignments: { include: { employee: true } } },
-      },
-      sites: { orderBy: { name: "asc" } },
-    },
-  });
+  const customer = await getCustomer(id);
 
   if (!customer) notFound();
 

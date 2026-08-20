@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { format } from "date-fns";
 import { ArrowLeft, Calendar, User } from "lucide-react";
@@ -15,13 +16,25 @@ import { JobRating } from "@/components/jobs/job-rating";
 import { priorityVariant } from "@/lib/job-badges";
 import { formatJobNumber, isOverdue } from "@/lib/jobs";
 
+const getJob = cache((id: string) =>
+  db.job.findUnique({
+    where: { id },
+    include: {
+      customer: true,
+      site: true,
+      assignments: { include: { employee: true } },
+      activities: { orderBy: { createdAt: "desc" }, include: { author: true } },
+    },
+  })
+);
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const job = await db.job.findUnique({ where: { id }, select: { title: true } });
+  const job = await getJob(id);
   return { title: job?.title ?? "Job" };
 }
 
@@ -34,15 +47,7 @@ export default async function EmployeeJobDetailPage({
   if (!session) redirect("/login");
   const { id } = await params;
 
-  const job = await db.job.findUnique({
-    where: { id },
-    include: {
-      customer: true,
-      site: true,
-      assignments: { include: { employee: true } },
-      activities: { orderBy: { createdAt: "desc" }, include: { author: true } },
-    },
-  });
+  const job = await getJob(id);
 
   if (!job) notFound();
 
