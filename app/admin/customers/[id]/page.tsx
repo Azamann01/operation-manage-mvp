@@ -180,6 +180,7 @@ export default async function CustomerDetailPage({
               <Link
                 key={job.id}
                 href={`/admin/jobs/${job.id}`}
+                prefetch={false}
                 className="flex items-center justify-between rounded-lg border bg-background p-4 hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20"
               >
                 <div>

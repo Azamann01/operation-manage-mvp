@@ -72,6 +72,7 @@ export default async function JobsPage({
             <Link
               key={job.id}
               href={`/admin/jobs/${job.id}`}
+              prefetch={false}
               className="group flex flex-col gap-2 rounded-xl border bg-background p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50/50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between dark:hover:bg-indigo-950/20"
             >
               <div>

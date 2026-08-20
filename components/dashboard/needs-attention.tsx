@@ -40,6 +40,7 @@ export function NeedsAttention({ jobs }: { jobs: AttentionJob[] }) {
         <li key={job.id}>
           <Link
             href={`/admin/jobs/${job.id}`}
+            prefetch={false}
             className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 hover:bg-muted/40"
           >
             <span

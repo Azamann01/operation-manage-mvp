@@ -286,6 +286,7 @@ export default async function AdminDashboardPage() {
                       <div className="min-w-0 flex-1">
                         <Link
                           href={`/admin/jobs/${a.jobId}`}
+                          prefetch={false}
                           className="text-sm hover:underline"
                         >
                           {a.description}
@@ -317,6 +318,7 @@ export default async function AdminDashboardPage() {
                 <Link
                   key={job.id}
                   href={`/admin/jobs/${job.id}`}
+                  prefetch={false}
                   className="flex flex-col gap-2 rounded-lg border p-3 hover:border-indigo-300 hover:bg-indigo-50/50 sm:flex-row sm:items-center sm:justify-between dark:hover:bg-indigo-950/20"
                 >
                   <div>

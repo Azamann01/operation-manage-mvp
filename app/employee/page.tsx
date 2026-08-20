@@ -54,7 +54,7 @@ export default async function EmployeeDashboardPage() {
               <Card key={job.id}>
                 <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <Link href={`/employee/jobs/${job.id}`} className="font-medium hover:underline">
+                    <Link href={`/employee/jobs/${job.id}`} prefetch={false} className="font-medium hover:underline">
                       {job.title}
                     </Link>
                     <p className="text-xs text-muted-foreground">{job.customer.name}</p>
@@ -82,6 +82,7 @@ export default async function EmployeeDashboardPage() {
               <Link
                 key={job.id}
                 href={`/employee/jobs/${job.id}`}
+                prefetch={false}
                 className="flex flex-col gap-2 rounded-xl border bg-background p-4 transition-colors hover:border-indigo-300 hover:bg-indigo-50/50 sm:flex-row sm:items-center sm:justify-between dark:hover:bg-indigo-950/20"
               >
                 <div>
